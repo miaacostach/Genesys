@@ -1,0 +1,268 @@
+# The following code contains an example for using the genesysr libraries to download information of https://www.genesys-pgr.org/
+# Additionally a way to analyze the data and make maps is shown.
+
+# you can use |> for %>%
+
+# INSTALL LIBRARIES TO WORK   ---------------------------------------------
+
+install.packages('tidyverse') # data analysis
+install.packages('leaflet') # maps
+
+# GENESYSR NEW FUNCTIONS UPDATE ------------------------------------------------
+# install.packages('genesysr')
+
+devtools::install_git('https://gitlab.croptrust.org/genesys-pgr/genesysr') # Install from github dev
+
+# ACTIVATE LIBRARIES  ------------------------------------------------------
+library(tidyverse) 
+library(leaflet)
+library(genesysr)
+
+# LOGIN ON GENESYS /AUTHORIZATION  --------------------------------------------------------
+genesysr::user_login() # please login
+
+genesysr::me() # check your user data
+
+# How get data relevant to GIS (Lat+Lon) for all non-historical accession ? ----------------------
+
+# filter non-historical accession ---------------
+filters <- c(historic = list(F)) 
+
+# filter accession with coordinates -------------
+filters$geo$referenced = T 
+
+# filter accession of GENUS Manihot -------------
+filters$taxonomy$genus = list('Manihot') # Cassava
+
+# Check JSON request for send to Genesys server through the API
+jsonlite::toJSON(filters, auto_unbox = T)
+
+tictoc::tic()
+accessions <- get_accessions(filters, SELECT_GEO_FIELDS)
+tictoc::toc() # 2.86 sec elapsed
+
+accessions |> count(INSTCODE) |> arrange(-n)
+
+# bar plot count accesion of each institute
+accessions |> count(INSTCODE) |> arrange(-n) |> 
+  ggplot(aes(x= fct_reorder(INSTCODE,-n),y=n)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.5) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = 'Genus Manihot with coordinates on Genesys',
+       x = 'Institute',
+       y= 'Accessions')
+
+# bar plot count accesion of each institute
+accessions |> count(ORIGCTY) |> arrange(-n) |> 
+  ggplot(aes(x= fct_reorder(ORIGCTY,-n),y=n)) +
+  geom_col() +
+  geom_text(aes(label = n), hjust = -0.2,size = 2.7,angle = 45) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = 'Genus Manihot with coordinates on Genesys by country of origin',
+       x = 'country of origin',
+       y= 'Accessions')
+
+
+# Map of accesion with coordinate but without country of origin
+# why?
+
+accessions |> filter(ORIGCTY=='') |> 
+  leaflet() |> 
+  addProviderTiles("Esri.WorldStreetMap") |>
+  addCircles(lng=accessions$DECLONGITUDE,
+             lat =accessions$DECLATITUDE,
+             color = 'red',
+             label = ~paste(ACCENUMB, INSTCODE, ORIGCTY,sep = " /-/ "))
+
+accessions |> filter(ORIGCTY=='') |> count(INSTCODE) |> arrange(-n)
+
+
+# SELECT ACCESSION CONSERVING BY CIAT (COL003)  ---------------------------
+accessions |> filter(INSTCODE=='COL003') |> dim() # 3896  ACC
+
+accessions |> 
+  filter(INSTCODE == 'COL003') |> 
+  leaflet() |> 
+  # Añadir capas base
+  addProviderTiles("Esri.WorldImagery", group = "Esri Imagery") |> 
+  addProviderTiles("OpenStreetMap.Mapnik", group = "OpenStreetMap") |> 
+  addProviderTiles("Esri.WorldStreetMap", group = " Esri WorldStreetMap") |> 
+  # Añadir marcadores/círculos
+  addCircles(
+    lng = ~DECLONGITUDE,
+    lat = ~DECLATITUDE,
+    color = 'red',
+    label = ~ACCENUMB,
+    group = "Accesiones") |> 
+  addLayersControl(baseGroups = c("Esri Imagery", "OpenStreetMap", "Stamen Toner Lite"),
+                   overlayGroups = c("Accesiones"),
+                   options = layersControlOptions(collapsed = FALSE))
+
+
+
+# The filter is the same as Genesys https://www.genesys-pgr.org/a/map/v2YdWb7E8jV/@5.090944,24.082031,2z
+
+# ANALYSIS OF SAMPSTAT COL003 ----------------------------------------------------
+
+filter_1 <- accessions |> 
+  filter(INSTCODE == 'COL003') |> count(SAMPSTAT) |> 
+  mutate(SAMPSTAT_2= c('Wild','Traditional cultivar/landrace','Breeding/research material'))
+
+ggplot(filter_1, aes(x =fct_reorder(SAMPSTAT_2,+n), y = n, fill = SAMPSTAT_2)) +
+  geom_bar(stat = 'identity') + 
+  theme_minimal() + 
+  geom_text(aes(x=SAMPSTAT_2,y=n, label=n), vjust=-0.2) + 
+  theme(legend.position = "none", 
+        axis.title.x = element_blank(), axis.title.y = element_blank()) + 
+  labs(title = 'SAMPSTAT COL003: \nAccessions genus Manihot with coordinates',
+       caption = 'Data from Genesys') + 
+  theme(legend.position = 'none', panel.background=element_rect(colour="black"))
+
+
+# filter accession of GENUS Tritticum  -------------
+
+filters$taxonomy$genus = list('Triticum')
+
+jsonlite::toJSON(filters, auto_unbox = T)
+
+tictoc::tic()
+accessions <- get_accessions(filters, SELECT_GEO_FIELDS)
+tictoc::toc()
+
+accessions |> count(INSTCODE) |> arrange(-n)
+
+# bar plot count accesion of each institute
+accessions |> count(INSTCODE) |> arrange(-n) |> 
+  ggplot(aes(x= fct_reorder(INSTCODE,-n),y=n)) +
+  geom_col() +
+  geom_text(aes(label = n), hjust = -0.2,size = 2.7,angle = 45) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = 'Genus Triticum with coordinates on Genesys by Institute',
+       x = 'Institute',
+       y= 'Accessions')
+
+
+accessions |> 
+  filter(INSTCODE == 'MEX002') |> 
+  leaflet() |> 
+  # add base map
+  addProviderTiles("Esri.WorldImagery", group = "Esri Imagery") |> 
+  addProviderTiles("OpenStreetMap.Mapnik", group = "OpenStreetMap") |> 
+  addProviderTiles("Esri.WorldStreetMap", group = " Esri WorldStreetMap") |> 
+  # coordinates points
+  addCircles(
+    lng = ~DECLONGITUDE,
+    lat = ~DECLATITUDE,
+    color = 'red',
+    label = ~paste(ACCENUMB, INSTCODE, ORIGCTY,sep = " /-/ "),
+    group = "Accesiones") |> 
+  addLayersControl(baseGroups = c("Esri Imagery", "OpenStreetMap", "Stamen Toner Lite"),
+                   overlayGroups = c("Accesiones"),
+                   options = layersControlOptions(collapsed = FALSE))
+
+
+
+# filter accession of GENUS Musa  -------------
+
+filters$taxonomy$genus = list('Musa')
+
+jsonlite::toJSON(filters, auto_unbox = T)
+
+tictoc::tic()
+accessions <- get_accessions(filters, SELECT_GEO_FIELDS)
+tictoc::toc()
+
+accessions |> count(INSTCODE) |> arrange(-n)
+
+# bar plot count accesion of each institute
+accessions |> count(INSTCODE) |> arrange(-n) |> 
+  ggplot(aes(x= fct_reorder(INSTCODE,-n),y=n)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.5) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) +
+  labs(title = 'Genus Musa with coordinates on Genesys by Institute',
+       x = 'Institute',
+       y= 'Accessions')
+
+# Map
+accessions |> 
+  filter(INSTCODE == 'BEL084') |> 
+  leaflet() |> 
+  # add base map
+  addProviderTiles("Esri.WorldImagery", group = "Esri Imagery") |> 
+  addProviderTiles("OpenStreetMap.Mapnik", group = "OpenStreetMap") |> 
+  addProviderTiles("Esri.WorldStreetMap", group = " Esri WorldStreetMap") |> 
+  # coordinates points
+  addCircles(
+    lng = ~DECLONGITUDE,
+    lat = ~DECLATITUDE,
+    color = 'purple',
+    label = ~paste(ACCENUMB, INSTCODE, ORIGCTY,sep = " /-/ "),
+    group = "Accesiones") |> 
+  addLayersControl(baseGroups = c("Esri Imagery", "OpenStreetMap", "Stamen Toner Lite"),
+                   overlayGroups = c("Accesiones"),
+                   options = layersControlOptions(collapsed = FALSE))
+
+
+
+### HOW TO JOIN TWO DATA SETS
+
+# filters$taxonomy$genus = list('Stylosanthes','Musa') # advaced filter
+
+filters$taxonomy$genus = list('Stylosanthes')
+
+tictoc::tic()
+accessions_2 <- get_accessions(filters, SELECT_GEO_FIELDS)
+tictoc::toc()
+
+accessions_union <- rbind(accessions,accessions_2) #
+
+# bar plot count accession of each institute
+accessions_union |> count(INSTCODE,GENUS) |> arrange(-n) |> 
+  ggplot(aes(x= fct_reorder(INSTCODE,-n),y=n)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.5, size = 3) +
+  theme_classic() +
+  facet_wrap(~GENUS, scale='free_x') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5)) +
+  labs(title = 'Genus Musa and Stylosanthes with coordinates on Genesys by Institute',
+       x = 'Institute',
+       y= 'Accessions')
+
+##############
+
+#### OTHERS FUNCTIONS
+
+crops <- genesysr::list_crops()
+
+excel_file <- download_mcpd("COL003")  # Change INSTCODE
+
+
+###################
+filters$taxonomy$genus = list('Stylosanthes','Musa','Phaseolus', 'Triticum') # 130609 Accesions      
+
+jsonlite::toJSON(filters, auto_unbox = T)
+
+tictoc::tic()
+accessions_3 <- get_accessions(filters, SELECT_GEO_FIELDS)
+tictoc::toc()
+
+accessions_3 |> count(GENUS) |> arrange(-n)
+
+
+accessions_3 |> count(INSTCODE,GENUS) |> arrange(-n) |> 
+  ggplot(aes(x= fct_reorder(INSTCODE,-n),y=n,fill = GENUS)) +
+  geom_col() +
+  #geom_text(aes(label = n), vjust = -0.5, size = 3) +
+  theme_classic() +
+  facet_wrap(~GENUS, scale='free') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5,size=7),
+        legend.position = 'bottom') +
+  labs(title = 'Genus Triticum,Phaseolus, Stylosanthes and Musa  with coordinates on Genesys by Institute',
+       x = 'Institute',
+       y= 'Accessions')
