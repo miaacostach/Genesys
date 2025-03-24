@@ -38,6 +38,27 @@ system('curl -O http://testdomain.com/testfile.tar.gz')
 
 # MASSIVE PHOTO UPDATE IN GENESYS --------------------------------------------
 
+# General function for update
+subir_archivo_ftp <- function(local_file_path, remote_file_path, userpwd) {
+  ftpUpload(
+    what = local_file_path,
+    to = remote_file_path,
+    userpwd = userpwd,
+    ftp.use.epsv = FALSE, 
+    ssl.verifypeer = FALSE, 
+    ssl.verifyhost = FALSE, 
+    verbose = TRUE,
+    connecttimeout = 30
+  )
+}
+
+# Remote phats
+construir_ruta_remota <- function(base_remote_path, carpeta, nombre_archivo) {
+  remote_path <- file.path(base_remote_path, carpeta)
+  remote_file_path <- paste0(remote_path, "/", URLencode(nombre_archivo))
+  return(remote_file_path)
+}
+
 library(RCurl)
 library(purrr)
 library(stringr)
