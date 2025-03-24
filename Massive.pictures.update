@@ -1,0 +1,111 @@
+
+# Function for update photos in Genesys. A massive tool
+
+# UPDATE GENESYS ------------------------------------------------------
+
+library(RCurl)
+library(httr)
+
+# How Update 1 photo by code ?
+
+local_file_path <- "D:\\OneDrive - CGIAR\\Desktop\\Test Images\\G669\\G669 pod.jpg"
+
+file.exists(local_file_path) # Revisar que exista el path
+
+ftpUpload(
+  what = local_file_path,
+  to = "ftps://ftp.genesys-pgr.org:2222/wiews/COL003/acn/G669/G669%20pod.jpg", # encoded
+  userpwd = 'user:pwrd',
+  ftp.use.epsv = F, 
+  ssl.verifypeer = F, 
+  ssl.verifyhost = F, 
+  verbose = T,
+  connecttimeout = 30)
+
+#### How delte with curl ?
+
+# Run well
+# DELETE IMAGE
+system('curl -k --ftp-ssl -v -u user:pwrd -Q "DELE /wiews/COL003/acn/G669/G669 pod.jpg" ftps://ftp.genesys-pgr.org:2222/', 
+       intern = TRUE)
+
+# 8.34 seg for file .jpg
+
+system('curl --version')
+system('curl testdomain.com')
+system('curl -O http://testdomain.com/testfile.tar.gz')
+
+
+# MASSIVE PHOTO UPDATE IN GENESYS --------------------------------------------
+
+library(RCurl)
+library(purrr)
+library(stringr)
+
+# [1] "D:/OneDrive - CGIAR/Desktop/Test Images/G997" 
+# [2] "D:/OneDrive - CGIAR/Desktop/Test Images/G2694"
+# [3] "D:/OneDrive - CGIAR/Desktop/Test Images/G4023"
+# [4] "D:/OneDrive - CGIAR/Desktop/Test Images/G4555"
+# [5] "D:/OneDrive - CGIAR/Desktop/Test Images/G669" 
+
+base_local_path <-  "D:/OneDrive - CGIAR/Desktop/Test Images"
+
+list_dir_1 <- data.frame(root = list.dirs(base_local_path, full.names = F)) |>
+  filter(root != "") |>  
+  mutate(genesys = gsub(base_local_path, "", root))
+
+# PARAMETERS OF FUNCTION
+base_local_path <-  "D:/OneDrive - CGIAR/Desktop/Test Images"
+base_remote_path <- "ftps://ftp.genesys-pgr.org:2222/wiews/COL003/acn"
+carpetas <- list_dir_1$genesys # names of folders
+userpwd <- 'user:pwd'
+
+# FUCNTION
+subir_archivos_masivos <- function(base_local_path, base_remote_path, carpetas, userpwd) {
+  # Iterar sobre las carpetas
+  walk(carpetas, function(carpeta) {
+    local_path <- file.path(base_local_path, carpeta)
+    
+    archivos <- list.files(local_path, pattern = "\\.jpg$", full.names = TRUE)
+    
+    # Función segura para subir archivos con manejo de errores
+    subir_archivo_ftp_safe <- safely(subir_archivo_ftp)
+    
+    # Iterar sobre los archivos de cada carpeta
+    walk(archivos, function(archivo) {
+      nombre_archivo <- basename(archivo)
+      remote_file_path <- construir_ruta_remota(base_remote_path, carpeta, nombre_archivo)
+      
+      result <- subir_archivo_ftp_safe(archivo, remote_file_path, userpwd)
+      if (!is.null(result$error)) {
+        message(paste("Error uploading file:", archivo, "->", result$error$message))
+      }
+    })
+    Sys.sleep(2) 
+  })
+}
+
+
+tictoc::tic()
+subir_archivos_masivos(base_local_path, base_remote_path, carpetas, userpwd)
+tictoc::toc()
+
+# 5  Photos in 38.65 sec elapsed
+# 21 Fotos en 175.06 sec
+# 148 Fotos en 1302.82 sec = 21.71367 min
+
+
+
+# DETE MASSIVE 
+dirs <- c("G997", "G2694", "G4023", "G4555", "G669")
+
+# Recorremos cada directorio y ejecutamos el comando curl correspondiente
+for(dir in dirs) {
+  # Construimos el comando utilizando sprintf para insertar el directorio en el path
+  cmd <- sprintf('curl -k --ftp-ssl -v -u userpwd -Q "DELE /wiews/COL003/acn/%s/%s pod.jpg" ftps://ftp.genesys-pgr.org:2222/', dir, dir)
+  # Ejecutamos el comando y capturamos la salida
+  salida <- system(cmd, intern = TRUE)
+  cat("Resultado para", dir, ":\n")
+  print(salida)
+  cat("\n")
+}
