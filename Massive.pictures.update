@@ -22,15 +22,15 @@ ftpUpload(
   verbose = T,
   connecttimeout = 30)
 
-#### How delte with curl ?
+#### How delete with curl ?
 
-# Run well
 # DELETE IMAGE
 system('curl -k --ftp-ssl -v -u user:pwrd -Q "DELE /wiews/COL003/acn/G669/G669 pod.jpg" ftps://ftp.genesys-pgr.org:2222/', 
        intern = TRUE)
 
 # 8.34 seg for file .jpg
 
+# Other examples using curl
 system('curl --version')
 system('curl testdomain.com')
 system('curl -O http://testdomain.com/testfile.tar.gz')
@@ -112,19 +112,19 @@ subir_archivos_masivos(base_local_path, base_remote_path, carpetas, userpwd)
 tictoc::toc()
 
 # 5  Photos in 38.65 sec elapsed
-# 21 Fotos en 175.06 sec
-# 148 Fotos en 1302.82 sec = 21.71367 min
+# 21 Fotos en 175.06 sec elapsed
+# 148 Fotos en 1302.82 sec = 21.71367 min elapsed
 
 
 
-# DETE MASSIVE 
+# DELETE MASSIVE 
 dirs <- c("G997", "G2694", "G4023", "G4555", "G669")
 
-# Recorremos cada directorio y ejecutamos el comando curl correspondiente
+# We go through each directory and execute the corresponding curl command
 for(dir in dirs) {
-  # Construimos el comando utilizando sprintf para insertar el directorio en el path
-  cmd <- sprintf('curl -k --ftp-ssl -v -u userpwd -Q "DELE /wiews/COL003/acn/%s/%s pod.jpg" ftps://ftp.genesys-pgr.org:2222/', dir, dir)
-  # Ejecutamos el comando y capturamos la salida
+  # We build the command using sprintf to insert the directory into the path
+  cmd <- sprintf('curl -k --ftp-ssl -v -u user:pwd -Q "DELE /wiews/COL003/acn/%s/%s pod.jpg" ftps://ftp.genesys-pgr.org:2222/', dir, dir)
+  # We execute the command and capture the output
   salida <- system(cmd, intern = TRUE)
   cat("Resultado para", dir, ":\n")
   print(salida)
