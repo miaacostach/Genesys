@@ -12,7 +12,7 @@ Welcome to this repository! Here, you'll find powerful scripts to enhance your G
 ✅ Additional Utilities – Various scripts to improve workflow and efficiency.
 
 
-Genesys is a vital platform connecting genebanks worldwide, allowing researchers to discover, analyze, and manage germplasm collections efficiently. This repository equips you with the tools to interact seamlessly with its data.
+Genesys is a vital platform connecting genebanks worldwide, allowing researchers to discover, analyze, and manage plant germplasm collections efficiently. This repository equips you with the tools to interact seamlessly with its data.
 
 🚀 Start exploring now and optimize your Genesys workflow!
 
