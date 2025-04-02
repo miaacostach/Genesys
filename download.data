@@ -81,7 +81,7 @@ accessions |> filter(ORIGCTY=='') |> count(INSTCODE) |> arrange(-n)
 
 
 # SELECT ACCESSION CONSERVING BY CIAT (COL003)  ---------------------------
-accessions |> filter(INSTCODE=='COL003') |> dim() # 3896  ACC
+accessions |> filter(INSTCODE=='COL003') |> dim() # 3891  ACC
 
 accessions |> 
   filter(INSTCODE == 'COL003') |> 
